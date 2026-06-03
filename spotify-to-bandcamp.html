@@ -61,7 +61,8 @@
 
 <script>
 function bandcampUrl(artist, track) {
-  return "https://bandcamp.com/search?q=" + encodeURIComponent(artist + " " + track) + "&item_type=t";
+  const cleanTrack = track.replace(/ - .+$/, "").trim();
+  return "https://bandcamp.com/search?q=" + encodeURIComponent(artist + " " + cleanTrack) + "&item_type=t";
 }
 
 function showError(msg) {

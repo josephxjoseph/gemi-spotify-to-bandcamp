@@ -18,8 +18,14 @@ _token = {"value": None, "expires_at": 0}
 def get_token():
     if _token["value"] and time.time() < _token["expires_at"] - 60:
         return _token["value"]
+    refresh_token = os.environ.get("SPOTIFY_REFRESH_TOKEN", "")
+    if not refresh_token:
+        raise ValueError("SPOTIFY_REFRESH_TOKEN env var not set")
     creds = base64.b64encode(f"{CLIENT_ID}:{CLIENT_SECRET}".encode()).decode()
-    data = urllib.parse.urlencode({"grant_type": "client_credentials"}).encode()
+    data = urllib.parse.urlencode({
+        "grant_type": "refresh_token",
+        "refresh_token": refresh_token,
+    }).encode()
     req = urllib.request.Request(
         "https://accounts.spotify.com/api/token",
         data=data,

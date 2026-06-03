@@ -71,12 +71,12 @@ def playlist():
         tracks = []
         url = (
             f"https://api.spotify.com/v1/playlists/{playlist_id}/items"
-            "?limit=50&fields=next,items(track(name,artists(name)))"
+            "?limit=50&fields=next,items(item(name,artists(name)))"
         )
         while url:
             page = spotify_get(url, token)
             for item in page.get("items") or []:
-                track = item.get("track")
+                track = item.get("item")
                 if track and track.get("name"):
                     tracks.append({
                         "name": track["name"],

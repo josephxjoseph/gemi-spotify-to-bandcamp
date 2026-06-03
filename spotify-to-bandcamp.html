@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Spotify → Bandcamp</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f5f5f5; color: #1a1a1a; padding: 2rem; }
+  .container { max-width: 720px; margin: 0 auto; background: white; border-radius: 12px; padding: 2rem; border: 1px solid #e0e0e0; }
+  h1 { font-size: 20px; font-weight: 600; margin-bottom: 0.25rem; }
+  .subtitle { font-size: 13px; color: #666; margin-bottom: 1.5rem; }
+  .field { display: flex; flex-direction: column; gap: 5px; margin-bottom: 12px; }
+  label { font-size: 12px; color: #666; font-weight: 500; }
+  input { border: 1px solid #ddd; border-radius: 8px; padding: 9px 12px; font-size: 14px; outline: none; transition: border-color 0.15s; }
+  input:focus { border-color: #1DB954; }
+  .btn-green { background: #1DB954; color: white; border: none; border-radius: 8px; padding: 10px 20px; font-size: 14px; font-weight: 600; cursor: pointer; transition: background 0.15s; }
+  .btn-green:hover { background: #17a349; }
+  .btn-green:disabled { background: #aaa; cursor: not-allowed; }
+  .error { color: #c0392b; font-size: 13px; margin-top: 8px; padding: 8px 12px; background: #fdf0ef; border-radius: 6px; display: none; }
+  .summary { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin: 1.5rem 0; }
+  .metric { background: #f8f8f8; border-radius: 8px; padding: 12px 16px; }
+  .metric-label { font-size: 11px; color: #888; margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.5px; }
+  .metric-value { font-size: 22px; font-weight: 600; }
+  table { width: 100%; border-collapse: collapse; font-size: 14px; }
+  th { text-align: left; font-size: 11px; color: #888; text-transform: uppercase; letter-spacing: 0.5px; padding: 8px 0; border-bottom: 1px solid #eee; }
+  td { padding: 10px 0; border-bottom: 1px solid #f0f0f0; vertical-align: middle; }
+  .num { color: #aaa; font-size: 12px; width: 30px; }
+  .artist { color: #666; font-size: 12px; }
+  .bc-link { color: #1DB954; text-decoration: none; font-size: 13px; white-space: nowrap; }
+  .bc-link:hover { text-decoration: underline; }
+  #track-section { display: none; }
+  .divider { border: none; border-top: 1px solid #eee; margin: 1.5rem 0; }
+</style>
+</head>
+<body>
+<div class="container">
+  <h1>Spotify to Bandcamp</h1>
+  <p class="subtitle">Convert any public Spotify playlist into Bandcamp search links.</p>
+
+  <div class="field">
+    <label>Spotify Playlist URL or ID</label>
+    <input type="text" id="playlist-input" placeholder="https://open.spotify.com/playlist/…" />
+  </div>
+  <button class="btn-green" id="go-btn" onclick="run()">Get Bandcamp links</button>
+  <div id="error-msg" class="error"></div>
+
+  <div id="track-section">
+    <hr class="divider">
+    <div class="summary">
+      <div class="metric"><div class="metric-label">Tracks</div><div class="metric-value" id="m-total">0</div></div>
+      <div class="metric"><div class="metric-label">Links</div><div class="metric-value" id="m-found">0</div></div>
+      <div class="metric"><div class="metric-label">Playlist</div><div class="metric-value" id="m-name" style="font-size:13px;padding-top:5px;">-</div></div>
+    </div>
+    <table>
+      <thead><tr><th class="num">#</th><th>Track</th><th>Artist</th><th style="text-align:right;">Bandcamp</th></tr></thead>
+      <tbody id="track-tbody"></tbody>
+    </table>
+  </div>
+</div>
+
+<script>
+function bandcampUrl(artist, track) {
+  return "https://bandcamp.com/search?q=" + encodeURIComponent(artist + " " + track) + "&item_type=t";
+}
+
+function showError(msg) {
+  const el = document.getElementById("error-msg");
+  el.textContent = msg;
+  el.style.display = "block";
+}
+
+function clearError() {
+  document.getElementById("error-msg").style.display = "none";
+}
+
+async function run() {
+  clearError();
+  const playlistRaw = document.getElementById("playlist-input").value.trim();
+  if (!playlistRaw) return showError("Please enter a Spotify playlist URL");
+
+  const btn = document.getElementById("go-btn");
+  btn.disabled = true;
+  btn.textContent = "Fetching...";
+  document.getElementById("track-section").style.display = "none";
+
+  try {
+    const resp = await fetch("/playlist?url=" + encodeURIComponent(playlistRaw));
+    const data = await resp.json();
+
+    if (!resp.ok) throw new Error(data.error || "Unknown error");
+    if (!data.tracks || data.tracks.length === 0) return showError("No tracks found");
+
+    const tracks = data.tracks;
+    document.getElementById("m-total").textContent = tracks.length;
+    document.getElementById("m-found").textContent = tracks.length;
+    document.getElementById("m-name").textContent = data.name || "-";
+
+    const tbody = document.getElementById("track-tbody");
+    tbody.innerHTML = "";
+    tracks.forEach(function(t, i) {
+      const tr = document.createElement("tr");
+      tr.innerHTML =
+        '<td class="num">' + (i + 1) + '</td>' +
+        '<td style="font-weight:500;">' + t.name + '</td>' +
+        '<td class="artist">' + t.artist + '</td>' +
+        '<td style="text-align:right;"><a class="bc-link" href="' + bandcampUrl(t.artist, t.name) + '" target="_blank">Search</a></td>';
+      tbody.appendChild(tr);
+    });
+
+    document.getElementById("track-section").style.display = "block";
+  } catch(e) {
+    showError(e.message);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = "Get Bandcamp links";
+  }
+}
+</script>
+</body>
+</html>

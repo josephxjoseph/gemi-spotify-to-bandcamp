@@ -10,7 +10,7 @@ from flask import Flask, jsonify, request, send_from_directory
 app = Flask(__name__)
 
 CLIENT_ID = os.environ.get("SPOTIFY_CLIENT_ID", "c9d98c88c43f422380f7eae75fabbed6")
-CLIENT_SECRET = os.environ.get("SPOTIFY_CLIENT_SECRET", "1ef75ea3178249f3a0b6af14b7ca4ff5")
+CLIENT_SECRET = os.environ.get("SPOTIFY_CLIENT_SECRET", "0494fa1003cc4b1ea758f7c9fe3c65dd")
 
 _token = {"value": None, "expires_at": 0}
 

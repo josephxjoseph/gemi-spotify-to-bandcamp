@@ -91,8 +91,12 @@ def playlist():
             url = page.get("next")
         return jsonify({"name": pl.get("name", ""), "tracks": tracks})
     except urllib.error.HTTPError as e:
+        if e.code == 403:
+            return jsonify({"error": "This playlist is private. Open it in Spotify, go to ··· → Make public, then try again."}), 502
+        if e.code == 404:
+            return jsonify({"error": "Playlist not found. Check the URL and try again."}), 502
         body = e.read().decode()
-        return jsonify({"error": f"Spotify {e.code}: {body}"}), 502
+        return jsonify({"error": f"Spotify error {e.code}: {body}"}), 502
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
